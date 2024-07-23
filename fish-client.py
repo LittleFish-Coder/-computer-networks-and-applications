@@ -28,8 +28,8 @@ def client(server_port, qname, qtype, timeout):
 
         print(f"ID: {qid}\n")
         print("QUESTION SECTION: ")
-        print(f"{qname} {qtype}\n")
-        print("ANSWER SECTION: ")
+        print(f"{qname} {qtype}")
+        # print("ANSWER SECTION: ")
         print(f"{response_parts}\n")
 
     except socket.timeout:
