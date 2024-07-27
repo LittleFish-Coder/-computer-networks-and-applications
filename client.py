@@ -1,67 +1,64 @@
 import sys
 import socket
 import random
-import time
 
-def construct_query_message(qid, qtype, qname):
-    """構建查詢消息"""
-    message = f"{qid} {qtype} {qname}"
+
+def construct_query_message(qid, qname, qtype):
+    message = f"{qid} {qname} {qtype}"
     return message.encode()
 
-def parse_response_message(response):
-    """解析響應消息"""
-    response = response.decode()
-    parts = response.split("\n")
-    return parts
 
 def client(server_port, qname, qtype, timeout):
-    """客戶端主函數"""
-    qid = random.randint(0, 65535)  # 生成隨機查詢ID
-    query_message = construct_query_message(qid, qtype, qname)
-
-    # 創建UDP套接字
+    # client message and info
+    qid = random.randint(0, 65535)  # Assign a randomly generated, 16-bit unsigned integer as the qid
+    query_message = construct_query_message(qid, qname, qtype)
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_socket.settimeout(timeout)
-    server_address = ('localhost', server_port)
 
+    server_address = ("localhost", server_port)
+
+    # connect to server
     try:
-        # 發送查詢消息到服務器
-        print(f"Sending query: {query_message}")
+        # print(f"Sending query: {query_message}\n")
         client_socket.sendto(query_message, server_address)
 
-        # 等待響應
+        # wait for response
         response_message, _ = client_socket.recvfrom(2048)
-        response_parts = parse_response_message(response_message)
-        
-        # 打印響應
-        print(f"ID: {response_parts[0]}")
-        print("QUESTION SECTION:")
-        print(f"{response_parts[1]}\n")
-        print("ANSWER SECTION:")
-        in_authority = False
-        in_additional = False
-        for part in response_parts[2:]:
-            if part == "AUTHORITY SECTION:":
-                in_authority = True
-                in_additional = False
-                print("\nAUTHORITY SECTION:")
-            elif part == "ADDITIONAL SECTION:":
-                in_additional = True
-                in_authority = False
-                print("\nADDITIONAL SECTION:")
-            else:
-                if part:
-                    print(part)
+        response_parts = response_message.decode()
+
+        print(f"ID: {qid}\n")
+        print("QUESTION SECTION: ")
+        print(f"{qname} {qtype}")
+        # print("ANSWER SECTION: ")
+        print(f"{response_parts}\n")
 
     except socket.timeout:
         print("timed out")
     finally:
         client_socket.close()
 
+
 if __name__ == "__main__":
+
     if len(sys.argv) != 5:
         print("Usage: python3 client.py server_port qname qtype timeout")
-        sys.exit(1)
+        raise "Invalid arguments"
+
+    """ Example
+    $ python3 client.py 54321 example.com. A 5
+    ID: 17564
+
+    Question Section:
+    example.com. A
+
+    Answer Section:
+    example.com. A 93.184.215.14
+
+    > Server log:
+    2024-05-21 19:20:31.750 rcv 62370: 17564 example.com. A (delay: 3s)
+    2024-05-21 19:20:34.756 snd 62370: 17564 example.com. A
+    
+    """
 
     server_port = int(sys.argv[1])
     qname = sys.argv[2]
